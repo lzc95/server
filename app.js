@@ -5,12 +5,16 @@ const json = require('koa-json')
 const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
 const logger = require('koa-logger')
+const mongoose = require('mongoose');
 
 const index = require('./routes/index')
 const users = require('./routes/users')
 
 // error handler
 onerror(app)
+
+mongoose.Promise = global.Promise;
+mongoose.connect('mongodb://127.0.0.1:27017/admin',{useNewUrlParser: true})
 
 // middlewares
 app.use(bodyparser({
@@ -23,7 +27,17 @@ app.use(require('koa-static')(__dirname + '/public'))
 app.use(views(__dirname + '/views', {
   extension: 'ejs'
 }))
+app.use(async (ctx, next) => {
+  // 允许跨域的头
+  ctx.set("Access-Control-Allow-Origin", "*");
 
+  // 允许浏览器发送的头
+  ctx.set("Access-Control-Allow-Headers", "Content-Type,Authorization");
+
+  // 允许哪些请求方法
+  ctx.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  await next()
+})
 // logger
 app.use(async (ctx, next) => {
   const start = new Date()
