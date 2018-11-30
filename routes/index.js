@@ -1,40 +1,45 @@
 const router = require('koa-router')()
 const jwt =require('jwt-simple')
 const User = require('../models/user')
+const MD5 = require('../utils/md5')
+const Config = require('../config')
+const auth =require('./auth')
 
-router.get('/', async (ctx, next) => {
-  await ctx.render('index', {
-    title: 'Hello Koa 2!'
+router.get('/auth', auth)
+
+router.post("/login", async (ctx) => {
+  let {username, password} = ctx.request.body
+  password = MD5(password)
+  // 查找用户是否存在
+  await User.findOne({username, password},(err, res) =>{
+    if (!err){
+      if (res) {
+        console.log(res)
+        let token = jwt.encode({
+          id: res._id,
+          exp: (Date.now() + 1000 * 60 * 30) / 1000
+        }, Config.secret)
+
+        ctx.body = { 
+          code: 0, 
+          data:{
+            username: res.username
+          },
+          token
+        }
+      } else {
+        ctx.body = { 
+          code: 1,
+          msg: '用户不存在'
+        }
+      }
+    } 
   })
 })
 
-router.post("/auth", async (ctx) => {
-  
-  const {username} = ctx.request.body
-  let secret= "secret"
-  try {
-      // 查找用户是否存在
-     await User.findOne({username},(err,res) =>{
-       if(err){
-         console.log(err,'19')
-       }
-       else{
-        ctx.body ={ code: 1, data: res }
-       }
-      });
-  } catch (e) {
-    ctx.body ={ code: 1, data: "登陆失败" }
-  }
+router.post("/getArticle", auth, async (ctx, next) =>{
+     ctx.body="hello luozengchang"
 })
 
-router.get('/string', async (ctx, next) => {
-  ctx.body = 'koa2 string'
-})
-
-router.get('/json', async (ctx, next) => {
-  ctx.body = {
-    title: 'koa2 json'
-  }
-})
 
 module.exports = router
